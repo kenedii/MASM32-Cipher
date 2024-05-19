@@ -1,138 +1,125 @@
 .data
 startingl DW 97       ; Where lowercase 'a' starts on ASCII table
-
 startingu DW 65       ; Where uppercase 'A' starts on ASCII table
-
-shiftbuf  DW 26       ; How much to add to letters < 97+n
+shiftbuf  DW 26       ; Alphabet length
 
 .data?
 phrase DB 256 dup(?)
 key DB 256 dup(?)
+encodedPhrase DB 256 dup(?)
 
 .code
 
 vigenereEncode PROC
-; Move phrase to encode -> eax
-; Move the key -> edx
- lea esi, edx
- lea esi, ecx
- call toLower  ; convert key to lowercase and move to ecx
- mov [key], ecx
- 
- mov esi, eax
- mov edi, encodedPhrase
+    ; Input: ESI -> phrase, EDI -> encodedPhrase, EDX -> key
+    mov esi, OFFSET phrase
+    mov edi, OFFSET encodedPhrase
+    mov edx, OFFSET key
+    call toLower  ; Convert key to lowercase
 
-
+    xor ebx, ebx  ; EBX will be the index for the key
 
 EncodeLoop:
-    cmp al, 0                     ; Check for null terminator
-    je done                       ; If null terminator, jump to done
+    mov al, [esi]           ; Load character from phrase
+    cmp al, 0               ; Check for null terminator
+    je done                 ; If null terminator, jump to done
 
-    cmp al, 'a'                   ; Check if lowercase letter
-    jl check_uppercase            ; If less than 'a', check uppercase
-    cmp al, 'z'                   ; Check if greater than 'z'
-    jg non_letter                 ; If greater than 'z', it's not a letter
-    call shift_lower              ; Call shift_lower procedure
+    ; Check if al is a letter
+    cmp al, 'a'             
+    jl check_uppercase      
+    cmp al, 'z'             
+    jg non_letter           
 
-non_letter:
-    mov [edi], al                 ; Copy non-letter character as it is
-    inc edi                       ; Move to next position in destination buffer
-    jmp EncodeLoop
+    ; Lowercase letter handling
+    call getShiftValue      ; Calculate shift based on key
+    call shift_lower        ; Shift the character
+    jmp store_and_next
 
 check_uppercase:
-    cmp al, 'A'                   ; Check if uppercase letter
-    jl non_letter                 ; If less than 'A', it's not a letter
-    cmp al, 'Z'                   ; Check if greater than 'Z'
-    jg non_letter                 ; If greater than 'Z', it's not a letter
-    call shift_upper              ; Call shift_upper procedure
-    mov al, [lbuffer]             ; Load encoded character from lbuffer
-    mov [edi], al                 ; Store encoded character
-    inc edi                       ; Move to next position in destination buffer
-    jmp encodeLoop            ; Jump to process next character
+    cmp al, 'A'             
+    jl non_letter           
+    cmp al, 'Z'             
+    jg non_letter           
+
+    ; Uppercase letter handling
+    call getShiftValue      ; Calculate shift based on key
+    call shift_upper        ; Shift the character
+
+store_and_next:
+    mov [edi], al           ; Store the shifted character
+    inc edi                 ; Move to the next position in the destination buffer
+    inc esi                 ; Move to the next character in the input phrase
+    inc ebx                 ; Move to the next character in the key
+    movzx ecx, byte ptr [key + ebx]  ; Load key character
+    test ecx, ecx           ; Check if end of key
+    jnz EncodeLoop          ; If not end, continue
+    xor ebx, ebx            ; Reset key index if end of key
+
+    jmp EncodeLoop
+
+non_letter:
+    mov [edi], al           ; Copy non-letter character as it is
+    inc edi                 ; Move to the next position in the destination buffer
+    inc esi                 ; Move to the next character in the input phrase
+    jmp EncodeLoop
 
 done:
- ret
-
+    ret
 vigenereEncode ENDP
 
-shift_lower PROC 
-    ; Operate on the letter stored in lbuffer
-    movzx eax, byte ptr [lbuffer] ; Load letter from lbuffer into EAX
-    movzx ecx, aposl              ; Load new position of 'a' into ECX
-    cmp eax, ecx                  ; Compare letter with 97 + shift
-    jl addition_lower             ; If letter < 97 + shift, jump to addition
-    jmp subtraction_lower         ; Otherwise, jump to subtraction
+getShiftValue PROC
+    ; Input: AL -> current character from phrase, EBX -> key index
+    ; Output: ECX -> shift value
+    movzx ecx, byte ptr [key + ebx]  ; Load key character
+    sub ecx, 'a'                     ; Calculate shift value (key - 'a')
+    ret
+getShiftValue ENDP
 
-addition_lower:
-    movzx ecx, abuf               ; Load abuf into ECX
-    add eax, ecx                  ; Add abuf to letter (using CX part of ECX)
-    jmp go_back_lower
-
-subtraction_lower:
-    mov ecx, [shiftValue]         ; Load the caesar shift value into ecx
-    sub eax, ecx                  ; Subtract shift from letter
-    jmp go_back_lower
-
-go_back_lower:
-    mov [lbuffer], al             ; Store the result back in lbuffer
-    ret                           ; Clean up the stack and return
+shift_lower PROC
+    ; Input: AL -> current character from phrase, ECX -> shift value
+    sub al, 'a'  ; Normalize character to 0-25
+    add al, cl   ; Apply the shift
+    movzx ecx, shiftbuf
+    xor edx, edx
+    div ecx      ; Ensure the shift is within 0-25 range (mod 26)
+    add al, 'a'  ; Convert back to ASCII
+    ret
 shift_lower ENDP
 
-shift_upper PROC 
-    ; Operate on the letter stored in lbuffer
-    movzx eax, byte ptr [lbuffer] ; Load letter from lbuffer into EAX
-    movzx ecx, aposu              ; Load new position of 'A' into ECX
-    cmp eax, ecx                  ; Compare letter with 65 + shift
-    jl addition_upper             ; If letter < 65 + shift, jump to addition
-    jmp subtraction_upper         ; Otherwise, jump to subtraction
-
-addition_upper:
-    movzx ecx, abuf               ; Load abuf into ECX
-    add eax, ecx                  ; Add abuf to letter (using CX part of ECX)
-    jmp go_back_upper
-
-subtraction_upper:
-    mov ecx, [shiftValue]         ; Load the caesar shift value into ecx
-    sub eax, ecx                  ; Subtract shift from letter
-    jmp go_back_upper
-
-go_back_upper:
-    mov [lbuffer], al             ; Store the result back in lbuffer
-    ret                           ; Clean up the stack and return
+shift_upper PROC
+    ; Input: AL -> current character from phrase, ECX -> shift value
+    sub al, 'A'  ; Normalize character to 0-25
+    add al, cl   ; Apply the shift
+    movzx ecx, shiftbuf
+    xor edx, edx
+    div ecx      ; Ensure the shift is within 0-25 range (mod 26)
+    add al, 'A'  ; Convert back to ASCII
+    ret
 shift_upper ENDP
 
-determineSHIFT PROC
-; place char -> eax
-; returns shift -> eax
+toLower PROC
+    ; Convert key to lowercase
+    mov esi, OFFSET key
+    mov edi, esi
 
- sub eax, 97  ; Subtract char-a to determine how many values to shift by
- ret
-determineSHIFT ENDP
+toLowerLoop:
+    mov al, [esi]
+    test al, al
+    jz toLowerDone
 
-toLower PROC               ; Convert an input string buffer to lowercase
-    mov ecx, bufferSize    ; Set the maximum loop count
-    movzx eax, byte ptr [esi]  ; Load the first character of the input string
-    test al, al            ; Check if it's the null terminator
-    jz endLoop             ; If it's the end of the string, exit the loop
+    cmp al, 'A'
+    jl not_uppercase
+    cmp al, 'Z'
+    jg not_uppercase
 
-loopStart:
-    cmp al, 'A'            ; Compare the character with 'A'
-    jl notUpperCase        ; If less than 'A', it's not uppercase
-    cmp al, 'Z'            ; Compare the character with 'Z'
-    jg notUpperCase        ; If greater than 'Z', it's not uppercase
-
-    ; Convert uppercase to lowercase by adding 32 to the ASCII value
     add al, 32
 
-notUpperCase:
-    mov [edi], al          ; Store the character in the output string
-    inc esi                ; Move to the next character in the input string
-    inc edi                ; Move to the next character in the output string
-    movzx eax, byte ptr [esi]  ; Load the next character of the input string
-    test al, al            ; Check if it's the null terminator
-    jz endLoop             ; If it's the end of the string, exit the loop
-    loop loopStart
+not_uppercase:
+    mov [edi], al
+    inc esi
+    inc edi
+    jmp toLowerLoop
 
-endLoop:
+toLowerDone:
     ret
 toLower ENDP
