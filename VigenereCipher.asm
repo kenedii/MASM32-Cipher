@@ -55,6 +55,52 @@ done:
 
 vigenereEncode ENDP
 
+shift_lower PROC 
+    ; Operate on the letter stored in lbuffer
+    movzx eax, byte ptr [lbuffer] ; Load letter from lbuffer into EAX
+    movzx ecx, aposl              ; Load new position of 'a' into ECX
+    cmp eax, ecx                  ; Compare letter with 97 + shift
+    jl addition_lower             ; If letter < 97 + shift, jump to addition
+    jmp subtraction_lower         ; Otherwise, jump to subtraction
+
+addition_lower:
+    movzx ecx, abuf               ; Load abuf into ECX
+    add eax, ecx                  ; Add abuf to letter (using CX part of ECX)
+    jmp go_back_lower
+
+subtraction_lower:
+    mov ecx, [shiftValue]         ; Load the caesar shift value into ecx
+    sub eax, ecx                  ; Subtract shift from letter
+    jmp go_back_lower
+
+go_back_lower:
+    mov [lbuffer], al             ; Store the result back in lbuffer
+    ret                           ; Clean up the stack and return
+shift_lower ENDP
+
+shift_upper PROC 
+    ; Operate on the letter stored in lbuffer
+    movzx eax, byte ptr [lbuffer] ; Load letter from lbuffer into EAX
+    movzx ecx, aposu              ; Load new position of 'A' into ECX
+    cmp eax, ecx                  ; Compare letter with 65 + shift
+    jl addition_upper             ; If letter < 65 + shift, jump to addition
+    jmp subtraction_upper         ; Otherwise, jump to subtraction
+
+addition_upper:
+    movzx ecx, abuf               ; Load abuf into ECX
+    add eax, ecx                  ; Add abuf to letter (using CX part of ECX)
+    jmp go_back_upper
+
+subtraction_upper:
+    mov ecx, [shiftValue]         ; Load the caesar shift value into ecx
+    sub eax, ecx                  ; Subtract shift from letter
+    jmp go_back_upper
+
+go_back_upper:
+    mov [lbuffer], al             ; Store the result back in lbuffer
+    ret                           ; Clean up the stack and return
+shift_upper ENDP
+
 determineSHIFT PROC
 ; place char -> eax
 ; returns shift -> eax
@@ -62,8 +108,6 @@ determineSHIFT PROC
  sub eax, 97  ; Subtract char-a to determine how many values to shift by
  ret
 determineSHIFT ENDP
-
-
 
 toLower PROC               ; Convert an input string buffer to lowercase
     mov ecx, bufferSize    ; Set the maximum loop count
