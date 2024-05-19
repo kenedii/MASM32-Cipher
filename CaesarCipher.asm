@@ -1,14 +1,16 @@
 .data
 startingl DW 97       ; Where lowercase 'a' starts on ASCII table
-aposl     DW ?        ; New position for lowercase 'a'
 
 startingu DW 65       ; Where uppercase 'A' starts on ASCII table
-aposu     DW ?        ; New position for uppercase 'A'
 
 abuf      DW 26       ; How much to add to letters < 97+n
 
+.data?                ; Uninitialized data
+aposu     DW ?        ; New position for uppercase 'A'
+aposl     DW ?        ; New position for lowercase 'a'
 shiftValue DD ?       ; Memory buffer to store the shift value
-lbuffer DB 1 dup(0)   ; Buffer to store letter in for shifting
+lbuffer DB 1 dup(?)   ; Buffer to store letter in for shifting
+
 
 PUBLIC encodedPhrase
 encodedPhrase DB 256 dup(?) ; Memory buffer to store encoded phrase
@@ -19,6 +21,8 @@ caesar_cipher PROC
     ; The encoded phrase will be stored in the encodedPhrase public memory buffer.
     ; Move offset phrase -> eax
     ; Move the shift value (< 26) -> edx
+    ; The result is stored in encodedPhrase public
+    
     mov esi, eax                  ; Store the phrase address in esi
     mov [shiftValue], edx         ; Store shift value in shiftValue buffer
 
@@ -130,4 +134,17 @@ go_back_upper:
     mov [lbuffer], al             ; Store the result back in lbuffer
     ret                           ; Clean up the stack and return
 shift_upper ENDP
+
+caesarDecode PROC ; Decode the encoded text if you know the original shift value.
+ ; Move offset encodedPhrase -> eax
+ ; Move originalShiftValue -> ecx
+ ; The result is stored in encodedPhrase public
+
+ ; Determine how much to shift to undo the original shift (26-originalShiftValue)
+ mov edx, 26
+ sub edx, ecx
+ call caesar_cipher
+ 
+ ret
+caesarDecode ENDP
 
