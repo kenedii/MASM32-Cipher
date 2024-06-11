@@ -17,6 +17,7 @@ aposl     DW ?        ; New position for lowercase 'a'
 
 vigenereEncode PROC
     ; Input: EAX -> phrase, EDX -> key
+    ; Result stored in encodedPhrase public buffer
 
     mov esi, eax                  ; Load phrase into ESI
     mov edi, OFFSET encodedPhrase ; Set destination for encoded phrase
@@ -91,12 +92,14 @@ getShiftValue PROC
     ; Output: shiftValue -> shift value
     movzx eax, byte ptr [edx + ecx] ; Load key character
     sub eax, 'a'                    ; Calculate shift value (key - 'a')
-    mov shiftValue, al              ; Store shift value
+    ;mov shiftValue, al              ; Store shift value
 
-    mov cx, 26                      ; Load 26 into CX
-    sub cx, ax                      ; Subtract shiftValue from 26
-
-    mov abuf, cx                    ; Store the result in abuf
+    mov bx, 26                      ; Load 26 into CX
+    sub bx, ax
+    mov shiftValue, bl                      ; Subtract shiftValue from 26
+    ;invoke StdOut, offset shiftValue
+    
+    mov abuf, ax                    ; Store the result in abuf
     
     ; Determine the new position of the letter 'a' -> aposl
     movzx eax, shiftValue           ; Load shift value into EAX
@@ -114,19 +117,19 @@ getShiftValue ENDP
 shift_lower PROC 
     ; Operate on the letter stored in lbuffer
     movzx eax, byte ptr [lbuffer] ; Load letter from lbuffer into EAX
-    movzx ecx, aposl              ; Load new position of 'a' into ECX
-    cmp eax, ecx                  ; Compare letter with 97 + shift
+    movzx ebx, aposl              ; Load new position of 'a' into ECX
+    cmp eax, ebx                  ; Compare letter with 97 + shift
     jl addition_lower             ; If letter < 97 + shift, jump to addition
     jmp subtraction_lower         ; Otherwise, jump to subtraction
 
 addition_lower:
-    movzx ecx, abuf               ; Load abuf into ECX
-    add eax, ecx                  ; Add abuf to letter (using CX part of ECX)
+    movzx ebx, abuf               ; Load abuf into ECX
+    add eax, ebx                  ; Add abuf to letter (using CX part of ECX)
     jmp go_back_lower
 
 subtraction_lower:
-    movzx ecx, shiftValue         ; Load the caesar shift value into ecx
-    sub eax, ecx                  ; Subtract shift from letter
+    movzx ebx, shiftValue         ; Load the caesar shift value into ecx
+    sub eax, ebx                  ; Subtract shift from letter
     jmp go_back_lower
 
 go_back_lower:
@@ -137,19 +140,19 @@ shift_lower ENDP
 shift_upper PROC 
     ; Operate on the letter stored in lbuffer
     movzx eax, byte ptr [lbuffer] ; Load letter from lbuffer into EAX
-    movzx ecx, aposu              ; Load new position of 'A' into ECX
-    cmp eax, ecx                  ; Compare letter with 65 + shift
+    movzx ebx, aposu              ; Load new position of 'A' into ECX
+    cmp eax, ebx                  ; Compare letter with 65 + shift
     jl addition_upper             ; If letter < 65 + shift, jump to addition
     jmp subtraction_upper         ; Otherwise, jump to subtraction
 
 addition_upper:
-    movzx ecx, abuf               ; Load abuf into ECX
-    add eax, ecx                  ; Add abuf to letter (using CX part of ECX)
+    movzx ebx, abuf               ; Load abuf into ECX
+    add eax, ebx                  ; Add abuf to letter (using CX part of ECX)
     jmp go_back_upper
 
 subtraction_upper:
-    movzx ecx, shiftValue         ; Load the caesar shift value into ecx
-    sub eax, ecx                  ; Subtract shift from letter
+    movzx ebx, shiftValue         ; Load the caesar shift value into ecx
+    sub eax, ebx                  ; Subtract shift from letter
     jmp go_back_upper
 
 go_back_upper:
