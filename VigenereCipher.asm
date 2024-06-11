@@ -17,7 +17,7 @@ aposl     DW ?        ; New position for lowercase 'a'
 
 vigenereEncode PROC
     ; Input: EAX -> phrase, EDX -> key
-    ; Result stored in encodedPhrase public buffer
+    ; Result stored in encodedPhrase buffer
     
     
     lea esi, [eax] ; move phrase in eax to phrase buffer to prevent it from being overwritten by toLower proc
@@ -209,3 +209,115 @@ StrCopy PROC
     StrCopyDone:
         ret
 StrCopy ENDP
+
+decodeAdjustShiftValue PROC ; Adjusts the shift Value to 26-shiftValue for decoding
+    mov bx, 26
+    mov ax, abuf
+    sub bx, ax
+    mov abuf, bx
+
+    mov bx, 26
+    mov ax, abuf
+    sub bx, ax
+
+    mov shiftValue, bl                    ; Store the result in abuf
+    
+    ; Determine the new position of the letter 'a' -> aposl
+    movzx eax, shiftValue           ; Load shift value into EAX
+    add eax, 97              ; Calculate new position: eax = 97 + shift
+    mov aposl, ax                   ; Store the result in aposl
+
+    ; Determine the new position of the letter 'A' -> aposu
+    movzx eax, shiftValue           ; Load shift value into EAX
+    add eax, 65              ; Calculate new position: eax = 65 + shift
+    mov aposu, ax                   ; Store the result in aposu
+    
+ ret
+decodeAdjustShiftValue ENDP
+
+vigenereDecode PROC
+; Input: EAX <-- encodedPhrase, EDX <-- key
+; Result stored in encodedPhrase buffer
+    lea esi, [eax] ; move phrase in eax to phrase buffer to prevent it from being overwritten by toLower proc
+    lea edi, m_phrase
+    call StrCopy
+    ; Convert key to lowercase
+    mov esi, edx
+    mov edi, edx
+    call toLower
+    
+    ; Copy the key to key memory buffer
+    lea esi, [edx]
+    lea edi, m_key
+    call StrCopy
+    
+    mov esi, offset m_phrase                  ; Load phrase into ESI
+    mov edi, OFFSET encodedPhrase ; Set destination for encoded phrase
+    xor ecx, ecx                  ; Clear ECX (key index)
+
+EncodeLoop:
+    mov al, [esi]                 ; Load character from phrase
+    cmp al, 0                     ; Check for null terminator
+    je done                       ; If null terminator, jump to done
+
+    ; Check if al is a lowercase or uppercase letter
+    cmp al, 'a'
+    jl check_uppercase
+    cmp al, 'z'
+    jg non_letter
+
+lowercase_letter_handling:
+    ; Lowercase letter handling
+    mov [lbuffer], al             ; Store the letter in lbuffer
+    call getShiftValue            ; Calculate shift based on key
+    call decodeAdjustShiftValue
+    call shift_lower              ; Shift the character
+    jmp store_and_next
+
+check_uppercase:
+    cmp al, 'A'
+    jl non_letter
+    cmp al, 'Z'
+    jg non_letter
+
+uppercase_letter_handling:
+    ; Uppercase letter handling
+    mov [lbuffer], al             ; Store the letter in lbuffer
+    call decodeAdjustShiftValue
+    call getShiftValue            ; Calculate shift based on key
+    call shift_upper              ; Shift the character
+    jmp store_and_next
+
+non_letter:
+    ; Non-letter character handling
+    mov [edi], al                 ; Copy non-letter character as it is
+    inc edi                       ; Move to the next position in the destination buffer
+    jmp next_character
+
+store_and_next:
+    ; Store the shifted character
+    mov al, [lbuffer]             ; Retrieve the shifted character from lbuffer
+    mov [edi], al
+    inc edi                       ; Move to the next position in the destination buffer
+    jmp next_character
+
+next_character:
+    ; Move to the next character in the input phrase
+    inc esi
+    ; Move to the next character in the key
+    inc ecx
+    ; Load the next character from the key
+    movzx ebx, byte ptr [m_key + ecx]
+    ; Check if end of key
+    test ebx, ebx
+    jnz continue_encoding         ; If not end, continue
+    xor ecx, ecx                  ; Reset key index if end of key
+
+continue_encoding:
+    jmp EncodeLoop
+
+done:
+    mov byte ptr [edi], 0         ; Null-terminate the encoded string
+    ret
+
+vigenereDecode ENDP
