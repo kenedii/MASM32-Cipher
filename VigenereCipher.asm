@@ -101,12 +101,10 @@ getShiftValue PROC
     ; Output: shiftValue -> shift value
     movzx eax, byte ptr [edx + ecx] ; Load key character
     sub eax, 'a'                    ; Calculate shift value (key - 'a')
-    ;mov shiftValue, al              ; Store shift value
 
     mov bx, 26                      ; Load 26 into CX
     sub bx, ax
     mov shiftValue, bl                      ; Subtract shiftValue from 26
-    ;invoke StdOut, offset shiftValue
     
     mov abuf, ax                    ; Store the result in abuf
     
