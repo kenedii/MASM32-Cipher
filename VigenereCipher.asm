@@ -18,8 +18,17 @@ aposl     DW ?        ; New position for lowercase 'a'
 vigenereEncode PROC
     ; Input: EAX -> phrase, EDX -> key
     ; Result stored in encodedPhrase public buffer
-
-    mov esi, eax                  ; Load phrase into ESI
+    
+    
+    lea esi, [eax] ; move phrase in eax to phrase buffer to prevent it from being overwritten by toLower proc
+    lea edi, phrase
+    call StrCopy
+    ; Convert key to lowercase
+    mov esi, edx
+    mov edi, edx
+    call toLower
+    
+    mov esi, offset phrase                  ; Load phrase into ESI
     mov edi, OFFSET encodedPhrase ; Set destination for encoded phrase
     xor ecx, ecx                  ; Clear ECX (key index)
 
