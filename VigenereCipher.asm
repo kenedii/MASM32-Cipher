@@ -6,8 +6,8 @@ abuf  DW 26           ; Alphabet length
 lbuffer DB 1 dup(?)   ; Buffer to store letter in for shifting
 
 .data?
-phrase DB 256 dup(?)
-key DB 256 dup(?)
+m_phrase DB 256 dup(?)
+m_key DB 256 dup(?)
 encodedPhrase DB 256 dup(?)
 shiftValue DB ?
 aposu     DW ?        ; New position for uppercase 'A'
@@ -21,14 +21,19 @@ vigenereEncode PROC
     
     
     lea esi, [eax] ; move phrase in eax to phrase buffer to prevent it from being overwritten by toLower proc
-    lea edi, phrase
+    lea edi, m_phrase
     call StrCopy
     ; Convert key to lowercase
     mov esi, edx
     mov edi, edx
     call toLower
     
-    mov esi, offset phrase                  ; Load phrase into ESI
+    ; Copy the key to key memory buffer
+    lea esi, [edx]
+    lea edi, m_key
+    call StrCopy
+    
+    mov esi, offset m_phrase                  ; Load phrase into ESI
     mov edi, OFFSET encodedPhrase ; Set destination for encoded phrase
     xor ecx, ecx                  ; Clear ECX (key index)
 
@@ -82,7 +87,7 @@ next_character:
     ; Move to the next character in the key
     inc ecx
     ; Load the next character from the key
-    movzx ebx, byte ptr [key + ecx]
+    movzx ebx, byte ptr [m_key + ecx]
     ; Check if end of key
     test ebx, ebx
     jnz continue_encoding         ; If not end, continue
