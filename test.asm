@@ -149,7 +149,7 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
 
     ; Create the text subwindow for the 'Text to Encode/Decode' text
     INVOKE    CreateWindowEx, cdSubType, ADDR szStatic, ADDR encodeTextBoxText, cdVCarText,\ 
-                  153, 105, cdTXSize, cdTYSize, hWnd,\
+                  153, 105, cdTXSize, 25, hWnd,\
                   500, wc.hInstance, NULL
 
     ; Create the text box for the text to Encode/Decode
@@ -158,10 +158,12 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                        ES_AUTOHSCROLL,\
                        100,132,400,25,hWnd,8,hInstance,NULL
 
-    ; Create the text subwindow for the 'Text to Encode/Decode' text
-    INVOKE    CreateWindowEx, cdSubType, ADDR szStatic, ADDR encodeTextBoxText, cdVCarText,\ 
-                  153, 105, cdTXSize, 25, hWnd,\
-                  500, wc.hInstance, NULL
+    ; Create the text box for the key/shift value
+    invoke CreateWindowEx,WS_EX_CLIENTEDGE, ADDR EditClassName,NULL,\
+                       WS_CHILD or WS_VISIBLE or WS_BORDER or ES_LEFT or\
+                       ES_AUTOHSCROLL,\
+                       100,205,400,25,hWnd,8,hInstance,NULL
+
 
 
 .ELSEIF uMsg == WM_COMMAND
@@ -189,7 +191,7 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
     invoke lstrcmp, ADDR tempBuffer, ADDR szText05       ; Check for Vigenere cipher
     .IF eax == 0
         invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR keyBoxText, cdVCarText, \
-                    153, 170, cdTXSize, cdTYSize, hWnd, \
+                    153, 170, cdTXSize, 25, hWnd, \
                     500, wc.hInstance, NULL              ; Display 'Key'
         mov hTextSubwindow, eax 
     .ENDIF
@@ -197,7 +199,7 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
     invoke lstrcmp, ADDR tempBuffer, ADDR szText06    ; Check for XOR Cipher
     .IF eax == 0
         invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR keyBoxText, cdVCarText, \
-                    153, 170, cdTXSize, cdTYSize, hWnd, \
+                    153, 170, cdTXSize, 25, hWnd, \
                     500, wc.hInstance, NULL           ; Display 'Key'
         mov hTextSubwindow, eax
     .ENDIF
@@ -205,7 +207,7 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
     invoke lstrcmp, ADDR tempBuffer, ADDR szText07        ; Check for Circular Right Shift
     .IF eax == 0
         invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR shiftValueText, cdVCarText, \
-            153, 170, cdTXSize, cdTYSize, hWnd, \
+            153, 170, cdTXSize, 25, hWnd, \
             500, wc.hInstance, NULL                    ; Display 'Shift Value'
         mov hTextSubwindow, eax
     .ENDIF
@@ -213,7 +215,7 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
     invoke lstrcmp, ADDR tempBuffer, ADDR szText04   ; Check for Caesar cipher
     .IF eax == 0
         invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR shiftValueText, cdVCarText, \
-                        153, 170, cdTXSize, cdTYSize, hWnd, \
+                        153, 170, cdTXSize, 25, hWnd, \
                         500, wc.hInstance, NULL        ; Display 'Shift Value'
         mov hTextSubwindow, eax
     .ENDIF
