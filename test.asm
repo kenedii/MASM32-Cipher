@@ -160,10 +160,56 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
 
     ; Create the text subwindow for the 'Text to Encode/Decode' text
     INVOKE    CreateWindowEx, cdSubType, ADDR szStatic, ADDR encodeTextBoxText, cdVCarText,\ 
-                  153, 105, cdTXSize, cdTYSize, hWnd,\
+                  153, 105, cdTXSize, 25, hWnd,\
                   500, wc.hInstance, NULL
 
 
+    .ELSEIF uMsg == WM_COMMAND
+    mov eax, wParam
+    shr eax, 16     ; Shift right 16 bits to extract the high word of wParam
+
+    cmp eax, CBN_SELCHANGE
+    jne @NoSelectionChange
+
+    ; Handle combobox selection change
+    invoke SendMessage, hCombobox011, CB_GETCURSEL, 0, 0
+    cmp eax, -1
+    je @EndCommand
+
+    ; Check the selected item
+    invoke SendMessage, hCombobox011, CB_GETLBTEXT, eax, ADDR tempBuffer
+
+    ; If the text subwindow exists, destroy it first
+    .IF hTextSubwindow
+        invoke DestroyWindow, hTextSubwindow
+        mov hTextSubwindow, 0
+    .ENDIF
+
+    ; Create the conditional text subwindow based on selection
+    invoke lstrcmp, ADDR tempBuffer, ADDR szText04
+    .IF eax == 0
+        invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR keyBoxText, cdVCarText, \
+              153, 170, cdTXSize, cdTYSize, hWnd, \
+              500, wc.hInstance, NULL
+        mov hTextSubwindow, eax
+    .ENDIF
+
+    invoke lstrcmp, ADDR tempBuffer, ADDR szText07
+    .IF eax == 0
+        invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR shiftValueText, cdVCarText, \
+              153, 170, cdTXSize, cdTYSize, hWnd, \
+              500, wc.hInstance, NULL
+        mov hTextSubwindow, eax
+    .ENDIF
+
+@EndCommand:
+    jmp @DoneHandling
+
+@NoSelectionChange:
+    ; Handle other commands or control notifications here
+    invoke DefWindowProc, hWnd, uMsg, wParam, lParam
+
+@DoneHandling:
 
 
 .ELSEIF uMsg==WM_DESTROY
