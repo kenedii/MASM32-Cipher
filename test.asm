@@ -17,6 +17,7 @@ ListboxCLass db "listbox",0
 EditClass db "edit",0
 szText01 db "Combobox01",0
 szText011 db "Combobox01",0
+
 szText02 db "Encode",0
 szText03 db "Decode",0
 szText04 db "Caesar Cipher",0
@@ -32,11 +33,13 @@ shiftValueText       DB "Shift value: ",0
 encryptedTextBoxText DB "Encrypted text: ",0
 
 szStatic      DB          "STATIC", 0
+ButtonClass   db          "BUTTON", 0
 ClassName     DB          "SimpleWinClass", 0
 ErrorMsg      DB          'Initial load failed.',0
 
 wc            WNDCLASSEX  <>
 EditClassName db "edit",0
+
 
 .data?
 hInstance HINSTANCE ?
@@ -46,6 +49,7 @@ hCombobox011 dd ?
 hListbox01 dd ?
 hEdit01 dd ?
 hTextSubwindow dd ?
+buttonSubwindow dd ?
 tempBuffer db 256 dup(?)
 
 .const
@@ -129,7 +133,6 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
     ; Create the Drop-Down box for Cipher selection
     invoke CreateWindowEx,NULL,addr ComboClass,addr szText011,WS_VISIBLE or WS_CHILD or WS_VSCROLL or CBS_DROPDOWNLIST,150,30,150,150,hWnd,ComboboxID,hInstance,NULL
     mov hCombobox011,eax
-    ;invoke SendMessage,hCombobox011,CB_SETITEMDATA,0,ADDR szText02
     invoke SendMessage,hCombobox011,CB_ADDSTRING,0,ADDR szText04
     invoke SendMessage,hCombobox011,CB_ADDSTRING,0,ADDR szText05
     invoke SendMessage,hCombobox011,CB_ADDSTRING,0,ADDR szText06
@@ -218,6 +221,35 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                         153, 170, cdTXSize, 25, hWnd, \
                         500, wc.hInstance, NULL        ; Display 'Shift Value'
         mov hTextSubwindow, eax
+    .ENDIF
+    ; Handle combobox selection change
+    invoke SendMessage, hCombobox01, CB_GETCURSEL, 0, 0
+    cmp eax, -1
+    je @EndCommand
+    invoke SendMessage, hCombobox01, CB_GETLBTEXT, eax, ADDR tempBuffer
+    invoke lstrcmp, ADDR tempBuffer, ADDR szText02   ; Check for Encode
+    .IF eax == 0
+        invoke    CreateWindowEx,WS_EX_LEFT,
+                          ADDR ButtonClass,
+                          ADDR szText02,
+                          WS_CHILD or WS_VISIBLE,; or BS_ICON,
+                          20,250,60,60,
+                          hWnd,400,
+                          wc.hInstance,NULL
+        ;invoke    SendMessage,hButton1,WM_SETFONT,vdTNRoman,0
+        mov buttonSubwindow, eax
+    .ENDIF
+    invoke lstrcmp, ADDR tempBuffer, ADDR szText03   ; Check for Decode
+    .IF eax == 0
+        invoke    CreateWindowEx,WS_EX_LEFT,
+                          ADDR ButtonClass,
+                          ADDR szText03,
+                          WS_CHILD or WS_VISIBLE,; or BS_ICON,
+                          20,250,60,60,
+                          hWnd,400,
+                          wc.hInstance,NULL
+        ;invoke    SendMessage,hButton1,WM_SETFONT,vdTNRoman,0
+        mov buttonSubwindow, eax
     .ENDIF
 
 @EndCommand:
