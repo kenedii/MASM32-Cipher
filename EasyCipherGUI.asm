@@ -48,10 +48,13 @@ hCombobox01 dd ?
 hCombobox011 dd ?
 hListbox01 dd ?
 hEdit01 dd ?
+hEdit02 dd ?
+hEdit03 dd ?
 hTextSubwindow dd ?
 buttonSubwindow dd ?
 encodedTextSubwindow dd ?
 tempBuffer db 256 dup(?)
+encodedText db 256 dup(?)
 
 .const
 ComboboxID equ 2001
@@ -161,12 +164,21 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                        WS_CHILD or WS_VISIBLE or WS_BORDER or ES_LEFT or\
                        ES_AUTOHSCROLL,\
                        100,132,400,25,hWnd,8,hInstance,NULL
+    mov hEdit01, eax
 
     ; Create the text box for the key/shift value
     invoke CreateWindowEx,WS_EX_CLIENTEDGE, ADDR EditClassName,NULL,\
                        WS_CHILD or WS_VISIBLE or WS_BORDER or ES_LEFT or\
                        ES_AUTOHSCROLL,\
                        100,195,400,25,hWnd,8,hInstance,NULL
+    mov hEdit02, eax
+
+    ; Create the text box for the encoded/decoded text
+    invoke CreateWindowEx,WS_EX_CLIENTEDGE, ADDR EditClassName,NULL,\
+                       WS_CHILD or WS_VISIBLE or WS_BORDER or ES_LEFT or\
+                       ES_AUTOHSCROLL,\
+                       100,295,400,25,hWnd,8,hInstance,NULL
+    mov hEdit03, eax
 
 
 
