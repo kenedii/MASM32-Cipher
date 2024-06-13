@@ -30,7 +30,7 @@ encodeOrDecodeText   DB "Encode/Decode: ",0
 encodeTextBoxText    DB "Text to Encode/Decode: ",0
 keyBoxText           DB "Key: ",0
 shiftValueText       DB "Shift value: ",0
-encryptedTextBoxText DB "Encrypted text: ",0
+encryptedTextBoxText DB "Encoded/Decoded text: ",0
 
 szStatic      DB          "STATIC", 0
 ButtonClass   db          "BUTTON", 0
@@ -50,6 +50,7 @@ hListbox01 dd ?
 hEdit01 dd ?
 hTextSubwindow dd ?
 buttonSubwindow dd ?
+encodedTextSubwindow dd ?
 tempBuffer db 256 dup(?)
 
 .const
@@ -165,7 +166,7 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
     invoke CreateWindowEx,WS_EX_CLIENTEDGE, ADDR EditClassName,NULL,\
                        WS_CHILD or WS_VISIBLE or WS_BORDER or ES_LEFT or\
                        ES_AUTOHSCROLL,\
-                       100,205,400,25,hWnd,8,hInstance,NULL
+                       100,195,400,25,hWnd,8,hInstance,NULL
 
 
 
@@ -222,33 +223,32 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                         500, wc.hInstance, NULL        ; Display 'Shift Value'
         mov hTextSubwindow, eax
     .ENDIF
-    ; Handle combobox selection change
+    
+    ; Handle combobox selection change for Encode/Decode box
     invoke SendMessage, hCombobox01, CB_GETCURSEL, 0, 0
     cmp eax, -1
     je @EndCommand
     invoke SendMessage, hCombobox01, CB_GETLBTEXT, eax, ADDR tempBuffer
     invoke lstrcmp, ADDR tempBuffer, ADDR szText02   ; Check for Encode
     .IF eax == 0
-        invoke    CreateWindowEx,WS_EX_LEFT,
+        invoke    CreateWindowEx,WS_EX_LEFT,       ; Create 'encode' button
                           ADDR ButtonClass,
                           ADDR szText02,
-                          WS_CHILD or WS_VISIBLE,; or BS_ICON,
-                          20,250,60,60,
+                          WS_CHILD or WS_VISIBLE, ; or BS_ICON,
+                          270,225,60,60,
                           hWnd,400,
                           wc.hInstance,NULL
-        ;invoke    SendMessage,hButton1,WM_SETFONT,vdTNRoman,0
         mov buttonSubwindow, eax
     .ENDIF
     invoke lstrcmp, ADDR tempBuffer, ADDR szText03   ; Check for Decode
     .IF eax == 0
-        invoke    CreateWindowEx,WS_EX_LEFT,
+        invoke    CreateWindowEx,WS_EX_LEFT,      ; create ' decode ' button
                           ADDR ButtonClass,
                           ADDR szText03,
                           WS_CHILD or WS_VISIBLE,; or BS_ICON,
-                          20,250,60,60,
+                          270,225,60,60,
                           hWnd,400,
                           wc.hInstance,NULL
-        ;invoke    SendMessage,hButton1,WM_SETFONT,vdTNRoman,0
         mov buttonSubwindow, eax
     .ENDIF
 
