@@ -164,7 +164,7 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                   500, wc.hInstance, NULL
 
 
-    .ELSEIF uMsg == WM_COMMAND
+.ELSEIF uMsg == WM_COMMAND
     mov eax, wParam
     shr eax, 16     ; Shift right 16 bits to extract the high word of wParam
 
@@ -186,19 +186,35 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
     .ENDIF
 
     ; Create the conditional text subwindow based on selection
-    invoke lstrcmp, ADDR tempBuffer, ADDR szText04
+    invoke lstrcmp, ADDR tempBuffer, ADDR szText05       ; Check for Vigenere cipher
     .IF eax == 0
         invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR keyBoxText, cdVCarText, \
-              153, 170, cdTXSize, cdTYSize, hWnd, \
-              500, wc.hInstance, NULL
+                    153, 170, cdTXSize, cdTYSize, hWnd, \
+                    500, wc.hInstance, NULL              ; Display 'Key'
+        mov hTextSubwindow, eax 
+    .ENDIF
+
+    invoke lstrcmp, ADDR tempBuffer, ADDR szText06    ; Check for XOR Cipher
+    .IF eax == 0
+        invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR keyBoxText, cdVCarText, \
+                    153, 170, cdTXSize, cdTYSize, hWnd, \
+                    500, wc.hInstance, NULL           ; Display 'Key'
         mov hTextSubwindow, eax
     .ENDIF
 
-    invoke lstrcmp, ADDR tempBuffer, ADDR szText07
+    invoke lstrcmp, ADDR tempBuffer, ADDR szText07        ; Check for Circular Right Shift
     .IF eax == 0
         invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR shiftValueText, cdVCarText, \
-              153, 170, cdTXSize, cdTYSize, hWnd, \
-              500, wc.hInstance, NULL
+            153, 170, cdTXSize, cdTYSize, hWnd, \
+            500, wc.hInstance, NULL                    ; Display 'Shift Value'
+        mov hTextSubwindow, eax
+    .ENDIF
+
+    invoke lstrcmp, ADDR tempBuffer, ADDR szText04   ; Check for Caesar cipher
+    .IF eax == 0
+        invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR shiftValueText, cdVCarText, \
+                        153, 170, cdTXSize, cdTYSize, hWnd, \
+                        500, wc.hInstance, NULL        ; Display 'Shift Value'
         mov hTextSubwindow, eax
     .ENDIF
 
@@ -210,6 +226,8 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
     invoke DefWindowProc, hWnd, uMsg, wParam, lParam
 
 @DoneHandling:
+
+
 
 
 .ELSEIF uMsg==WM_DESTROY
