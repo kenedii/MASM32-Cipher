@@ -3,9 +3,9 @@ Several ciphers/encryption methods implemented as MASM32 x86 Assembly procedures
 
 - Caesar cipher/ROT-13
 
-- Circular Right Shift with overflow * not implemented
-
 - Vigenère cipher
+
+- Circular Right Shift with overflow * not implemented
 
 - XOR Cipher * not implemented
 
