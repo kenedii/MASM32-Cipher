@@ -8,7 +8,7 @@ lbuffer DB 1 dup(?)   ; Buffer to store letter in for shifting
 .data?
 m_phrase DB 256 dup(?)
 m_key DB 256 dup(?)
-encodedPhrase DB 256 dup(?)
+v_encodedPhrase DB 256 dup(?)
 shiftValue DB ?
 aposu     DW ?        ; New position for uppercase 'A'
 aposl     DW ?        ; New position for lowercase 'a'
@@ -18,6 +18,12 @@ aposl     DW ?        ; New position for lowercase 'a'
 vigenereEncode PROC
     ; Input: EAX -> phrase, EDX -> key
     ; Result stored in encodedPhrase buffer
+
+    ;Initialize data buffers in case they have been reset
+    mov v_encodedPhrase, 0
+    mov startingl, 97
+    mov startingu, 65
+    mov abuf, 26
     
     
     lea esi, [eax] ; move phrase in eax to phrase buffer to prevent it from being overwritten by toLower proc
@@ -34,7 +40,7 @@ vigenereEncode PROC
     call StrCopy
     
     mov esi, offset m_phrase                  ; Load phrase into ESI
-    mov edi, OFFSET encodedPhrase ; Set destination for encoded phrase
+    mov edi, OFFSET v_encodedPhrase ; Set destination for encoded phrase
     xor ecx, ecx                  ; Clear ECX (key index)
 
 EncodeLoop:
@@ -52,7 +58,7 @@ lowercase_letter_handling:
     ; Lowercase letter handling
     mov [lbuffer], al             ; Store the letter in lbuffer
     call getShiftValue            ; Calculate shift based on key
-    call shift_lower              ; Shift the character
+    call shiftLower              ; Shift the character
     jmp store_and_next
 
 check_uppercase:
@@ -65,7 +71,7 @@ uppercase_letter_handling:
     ; Uppercase letter handling
     mov [lbuffer], al             ; Store the letter in lbuffer
     call getShiftValue            ; Calculate shift based on key
-    call shift_upper              ; Shift the character
+    call shiftUpper              ; Shift the character
     jmp store_and_next
 
 non_letter:
@@ -126,7 +132,7 @@ getShiftValue PROC
     ret
 getShiftValue ENDP
 
-shift_lower PROC 
+shiftLower PROC 
     ; Operate on the letter stored in lbuffer
     movzx eax, byte ptr [lbuffer] ; Load letter from lbuffer into EAX
     movzx ebx, aposl              ; Load new position of 'a' into ECX
@@ -147,9 +153,9 @@ subtraction_lower:
 go_back_lower:
     mov [lbuffer], al             ; Store the result back in lbuffer
     ret                           ; Clean up the stack and return
-shift_lower ENDP
+shiftLower ENDP
 
-shift_upper PROC 
+shiftUpper PROC 
     ; Operate on the letter stored in lbuffer
     movzx eax, byte ptr [lbuffer] ; Load letter from lbuffer into EAX
     movzx ebx, aposu              ; Load new position of 'A' into ECX
@@ -170,7 +176,7 @@ subtraction_upper:
 go_back_upper:
     mov [lbuffer], al             ; Store the result back in lbuffer
     ret                           ; Clean up the stack and return
-shift_upper ENDP
+shiftUpper ENDP
 
 toLower PROC
     ; Convert key to lowercase
@@ -252,7 +258,7 @@ vigenereDecode PROC
     call StrCopy
     
     mov esi, offset m_phrase                  ; Load phrase into ESI
-    mov edi, OFFSET encodedPhrase ; Set destination for encoded phrase
+    mov edi, OFFSET v_encodedPhrase ; Set destination for encoded phrase
     xor ecx, ecx                  ; Clear ECX (key index)
 
 EncodeLoop:
@@ -271,7 +277,7 @@ lowercase_letter_handling:
     mov [lbuffer], al             ; Store the letter in lbuffer
     call getShiftValue            ; Calculate shift based on key
     call decodeAdjustShiftValue
-    call shift_lower              ; Shift the character
+    call shiftLower              ; Shift the character
     jmp store_and_next
 
 check_uppercase:
@@ -285,7 +291,7 @@ uppercase_letter_handling:
     mov [lbuffer], al             ; Store the letter in lbuffer
     call decodeAdjustShiftValue
     call getShiftValue            ; Calculate shift based on key
-    call shift_upper              ; Shift the character
+    call shiftUpper              ; Shift the character
     jmp store_and_next
 
 non_letter:
