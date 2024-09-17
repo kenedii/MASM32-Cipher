@@ -197,7 +197,6 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
             invoke SendMessage, hCombobox011, CB_GETLBTEXT, eax, ADDR tempBuffer
             invoke lstrcmp, ADDR tempBuffer, ADDR szText05       ; Check for Vigenere cipher
             .if eax == 0 ; If drop-down menu is set to 'Vigenere Cipher'
-                mov v_encodedPhrase, 0  ; Clear the buffer
                 lea eax, phrase
                 lea edx, key
                 call vigenereEncode
@@ -206,7 +205,6 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
             .endif
             invoke lstrcmp, ADDR tempBuffer, ADDR szText04       ; Check for Caesar cipher
             .if eax == 0 ; If drop-down menu is set to 'Caesar Cipher'
-                mov encodedPhrase, 0  ; Clear the buffer
                 invoke SetWindowText,hEdit03, 0
                 invoke atodw, addr key
                 mov edx, eax
@@ -215,7 +213,7 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                 invoke SetWindowText,hEdit03,addr encodedPhrase
             .endif
         .endif
-    .if wParam == encodeButton+39 ; If the decode button is pressed
+    .if wParam == encodeButton+1 ; If the decode button is pressed
             invoke GetWindowText,hEdit01,ADDR phrase,256
             invoke GetWindowText,hEdit02,ADDR key, 256
             ; Handle combobox selection change
@@ -225,7 +223,6 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
             invoke SendMessage, hCombobox011, CB_GETLBTEXT, eax, ADDR tempBuffer
             invoke lstrcmp, ADDR tempBuffer, ADDR szText05       ; Check for Vigenere cipher
             .if eax == 0 ; If drop-down menu is set to 'Vigenere Cipher'
-                mov v_encodedPhrase, 0  ; Clear the buffer
                 lea eax, phrase
                 lea edx, key
                 call vigenereDecode
@@ -233,7 +230,6 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
             .endif
             invoke lstrcmp, ADDR tempBuffer, ADDR szText04       ; Check for Caesar cipher
             .if eax == 0 ; If drop-down menu is set to 'Caesar Cipher'
-                mov encodedPhrase, 0  ; Clear the buffer
                 invoke atodw, addr key
                 mov ecx, eax
                 lea eax, phrase
