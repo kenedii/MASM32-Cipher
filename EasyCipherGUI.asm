@@ -1,11 +1,9 @@
 .386
-.model flat,stdcall
+
 option casemap:none
-include \masm32\include\windows.inc
-include \masm32\include\user32.inc
-include \masm32\include\kernel32.inc
-includelib \masm32\lib\user32.lib
-includelib \masm32\lib\kernel32.lib
+include \masm32\include\masm32rt.inc
+include CaesarCipher.asm
+include VigenereCipher.asm
 
 WinMain proto :DWORD,:DWORD,:DWORD,:DWORD
 
@@ -56,8 +54,13 @@ encodedTextSubwindow dd ?
 tempBuffer db 256 dup(?)
 encodedText db 256 dup(?)
 
+key db 256 dup(?)
+phrase db 256 dup(?)
+
+
 .const
 ComboboxID equ 2001
+encodeButton equ 400 
 
 ; Constants for the text subwindow
 cdVCarText  EQU  WS_CHILD + WS_VISIBLE + SS_CENTER
@@ -183,89 +186,113 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
 
 
 .ELSEIF uMsg == WM_COMMAND
-    mov eax, wParam
-    shr eax, 16     ; Shift right 16 bits to extract the high word of wParam
+.if wParam == encodeButton ; If the encode button is pressed
+            invoke RtlZeroMemory, addr v_encodedPhrase, 256  ; Clear the buffer
+            invoke GetWindowText,hEdit01,ADDR phrase,256
+            invoke GetWindowText,hEdit02,ADDR key, 256
+            ; Handle combobox selection change
+            invoke SendMessage, hCombobox011, CB_GETCURSEL, 0, 0
+            cmp eax, -1
+            je @EndCommand
+            invoke SendMessage, hCombobox011, CB_GETLBTEXT, eax, ADDR tempBuffer
+            invoke lstrcmp, ADDR tempBuffer, ADDR szText05       ; Check for Vigenere cipher
+            .if eax == 0 ; If drop-down menu is set to 'Vigenere Cipher'
+                mov v_encodedPhrase, 0  ; Clear the buffer
+                lea eax, phrase
+                lea edx, key
+                call vigenereEncode
+                invoke SetWindowText,hEdit03,addr v_encodedPhrase
+                jmp @DoneHandling
+            .endif
+            invoke lstrcmp, ADDR tempBuffer, ADDR szText04       ; Check for Caesar cipher
+            .if eax == 0 ; If drop-down menu is set to 'Caesar Cipher'
+                mov encodedPhrase, 0  ; Clear the buffer
+                invoke SetWindowText,hEdit03, 0
+                invoke atodw, addr key
+                mov edx, eax
+                lea eax, phrase
+                call caesarEncode
+                invoke SetWindowText,hEdit03,addr encodedPhrase
+            .endif
+        .endif
+    .if wParam == encodeButton+39 ; If the decode button is pressed
+            invoke GetWindowText,hEdit01,ADDR phrase,256
+            invoke GetWindowText,hEdit02,ADDR key, 256
+            ; Handle combobox selection change
+            invoke SendMessage, hCombobox011, CB_GETCURSEL, 0, 0
+            cmp eax, -1
+            je @EndCommand
+            invoke SendMessage, hCombobox011, CB_GETLBTEXT, eax, ADDR tempBuffer
+            invoke lstrcmp, ADDR tempBuffer, ADDR szText05       ; Check for Vigenere cipher
+            .if eax == 0 ; If drop-down menu is set to 'Vigenere Cipher'
+                mov v_encodedPhrase, 0  ; Clear the buffer
+                lea eax, phrase
+                lea edx, key
+                call vigenereDecode
+                invoke SetWindowText,hEdit03,addr v_encodedPhrase
+            .endif
+            invoke lstrcmp, ADDR tempBuffer, ADDR szText04       ; Check for Caesar cipher
+            .if eax == 0 ; If drop-down menu is set to 'Caesar Cipher'
+                mov encodedPhrase, 0  ; Clear the buffer
+                invoke atodw, addr key
+                mov ecx, eax
+                lea eax, phrase
+                call caesarDecode
+                invoke SetWindowText,hEdit03,addr encodedPhrase
+            .endif
+        .endif
+        mov eax, wParam
+        shr eax, 16     ; Shift right 16 bits to extract the high word of wParam
 
-    cmp eax, CBN_SELCHANGE
-    jne @NoSelectionChange
+        cmp eax, CBN_SELCHANGE
+        jne @NoSelectionChange
 
-    ; Handle combobox selection change
-    invoke SendMessage, hCombobox011, CB_GETCURSEL, 0, 0
-    cmp eax, -1
-    je @EndCommand
+        ; Handle combobox selection change
+        invoke SendMessage, hCombobox011, CB_GETCURSEL, 0, 0
+        cmp eax, -1
+        je @EndCommand
 
-    ; Check the selected item
-    invoke SendMessage, hCombobox011, CB_GETLBTEXT, eax, ADDR tempBuffer
+        ; Check the selected item
+        invoke SendMessage, hCombobox011, CB_GETLBTEXT, eax, ADDR tempBuffer
 
-    ; If the text subwindow exists, destroy it first
-    .IF hTextSubwindow
-        invoke DestroyWindow, hTextSubwindow
-        mov hTextSubwindow, 0
-    .ENDIF
+        ; Handle combobox selection change for Encode/Decode box
+        invoke SendMessage, hCombobox01, CB_GETCURSEL, 0, 0
+        cmp eax, -1
+        je @EndCommand
+        invoke SendMessage, hCombobox01, CB_GETLBTEXT, eax, ADDR tempBuffer
 
-    ; Create the conditional text subwindow based on selection
-    invoke lstrcmp, ADDR tempBuffer, ADDR szText05       ; Check for Vigenere cipher
-    .IF eax == 0
-        invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR keyBoxText, cdVCarText, \
-                    153, 170, cdTXSize, 25, hWnd, \
-                    500, wc.hInstance, NULL              ; Display 'Key'
-        mov hTextSubwindow, eax 
-    .ENDIF
+        ; If a button exists, destroy it before creating a new one
+        .IF buttonSubwindow
+            invoke DestroyWindow, buttonSubwindow
+            mov buttonSubwindow, 0
+        .ENDIF
 
-    invoke lstrcmp, ADDR tempBuffer, ADDR szText06    ; Check for XOR Cipher
-    .IF eax == 0
-        invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR keyBoxText, cdVCarText, \
-                    153, 170, cdTXSize, 25, hWnd, \
-                    500, wc.hInstance, NULL           ; Display 'Key'
-        mov hTextSubwindow, eax
-    .ENDIF
-
-    invoke lstrcmp, ADDR tempBuffer, ADDR szText07        ; Check for Circular Right Shift
-    .IF eax == 0
-        invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR shiftValueText, cdVCarText, \
-            153, 170, cdTXSize, 25, hWnd, \
-            500, wc.hInstance, NULL                    ; Display 'Shift Value'
-        mov hTextSubwindow, eax
-    .ENDIF
-
-    invoke lstrcmp, ADDR tempBuffer, ADDR szText04   ; Check for Caesar cipher
-    .IF eax == 0
-        invoke CreateWindowEx, cdSubType, ADDR szStatic, ADDR shiftValueText, cdVCarText, \
-                        153, 170, cdTXSize, 25, hWnd, \
-                        500, wc.hInstance, NULL        ; Display 'Shift Value'
-        mov hTextSubwindow, eax
-    .ENDIF
-    
-    ; Handle combobox selection change for Encode/Decode box
-    invoke SendMessage, hCombobox01, CB_GETCURSEL, 0, 0
-    cmp eax, -1
-    je @EndCommand
-    invoke SendMessage, hCombobox01, CB_GETLBTEXT, eax, ADDR tempBuffer
-    invoke lstrcmp, ADDR tempBuffer, ADDR szText02   ; Check for Encode
-    .IF eax == 0
-        invoke    CreateWindowEx,WS_EX_LEFT,       ; Create 'encode' button
+        invoke lstrcmp, ADDR tempBuffer, ADDR szText02   ; Check for Encode
+        .IF eax == 0
+            invoke    CreateWindowEx,WS_EX_LEFT,       ; Create 'encode' button
                           ADDR ButtonClass,
-                          ADDR szText02,
-                          WS_CHILD or WS_VISIBLE, ; or BS_ICON,
+                          ADDR szText02,               ; Button text: Encode
+                          WS_CHILD or WS_VISIBLE,      ; or BS_ICON,
                           270,225,60,60,
                           hWnd,400,
                           wc.hInstance,NULL
-        mov buttonSubwindow, eax
-    .ENDIF
-    invoke lstrcmp, ADDR tempBuffer, ADDR szText03   ; Check for Decode
-    .IF eax == 0
-        invoke    CreateWindowEx,WS_EX_LEFT,      ; create ' decode ' button
-                          ADDR ButtonClass,
-                          ADDR szText03,
-                          WS_CHILD or WS_VISIBLE,; or BS_ICON,
-                          270,225,60,60,
-                          hWnd,400,
-                          wc.hInstance,NULL
-        mov buttonSubwindow, eax
-    .ENDIF
+            mov buttonSubwindow, eax
+        .ENDIF
 
-@EndCommand:
-    jmp @DoneHandling
+        invoke lstrcmp, ADDR tempBuffer, ADDR szText03   ; Check for Decode
+        .IF eax == 0
+            invoke    CreateWindowEx,WS_EX_LEFT,      ; create 'decode' button
+                          ADDR ButtonClass,
+                          ADDR szText03,               ; Button text: Decode
+                          WS_CHILD or WS_VISIBLE,      ; or BS_ICON,
+                          270,225,60,60,
+                          hWnd,401,
+                          wc.hInstance,NULL
+            mov buttonSubwindow, eax
+        .ENDIF
+
+    @EndCommand:
+        jmp @DoneHandling
 
 @NoSelectionChange:
     ; Handle other commands or control notifications here
